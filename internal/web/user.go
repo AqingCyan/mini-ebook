@@ -3,6 +3,8 @@ package web
 import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
+	"mini-ebook/internal/domain"
+	"mini-ebook/internal/service"
 	"net/http"
 )
 
@@ -14,12 +16,14 @@ const (
 type UserHandler struct {
 	emailRegExp    *regexp.Regexp
 	passwordRegExp *regexp.Regexp
+	svc            *service.UserService
 }
 
-func NewUserHandler() *UserHandler {
+func NewUserHandler(svc *service.UserService) *UserHandler {
 	return &UserHandler{
 		emailRegExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordRegExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
+		svc:            svc,
 	}
 }
 
@@ -46,30 +50,40 @@ func (uh *UserHandler) Signup(ctx *gin.Context) {
 
 	isEmail, err := uh.emailRegExp.MatchString(req.Email)
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "系统错误")
+		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 	if !isEmail {
-		ctx.String(http.StatusBadRequest, "非法邮箱格式")
+		ctx.String(http.StatusOK, "非法邮箱格式")
 		return
 	}
 
 	if req.ConfirmPassword != req.Password {
-		ctx.String(http.StatusBadRequest, "两次密码不匹配")
+		ctx.String(http.StatusOK, "两次密码不匹配")
 		return
 	}
 
 	isPassword, err := uh.passwordRegExp.MatchString(req.Password)
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "系统错误")
+		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 	if !isPassword {
-		ctx.String(http.StatusBadRequest, "密码必须包含字母、数字、特殊字符，并且不少于八位")
+		ctx.String(http.StatusOK, "密码必须包含字母、数字、特殊字符，并且不少于八位")
 		return
 	}
 
-	ctx.String(http.StatusOK, "Hello World")
+	err = uh.svc.Signup(ctx, domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		println(err.Error())
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+
+	ctx.String(http.StatusOK, "注册成功")
 }
 
 func (uh *UserHandler) Login(ctx *gin.Context) {
