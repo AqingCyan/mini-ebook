@@ -6,6 +6,8 @@ import (
 	"mini-ebook/internal/repository/dao"
 )
 
+var ErrDuplicateEmail = dao.ErrDuplicateEmail
+
 type UserRepository struct {
 	dao *dao.UserDao
 }
