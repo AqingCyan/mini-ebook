@@ -78,7 +78,6 @@ func (uh *UserHandler) Signup(ctx *gin.Context) {
 		Email:    req.Email,
 		Password: req.Password,
 	})
-
 	switch {
 	case err == nil:
 		ctx.String(http.StatusOK, "注册成功")
@@ -90,7 +89,24 @@ func (uh *UserHandler) Signup(ctx *gin.Context) {
 }
 
 func (uh *UserHandler) Login(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
 
+	_, err := uh.svc.Login(ctx, req.Email, req.Password)
+	switch {
+	case err == nil:
+		ctx.String(http.StatusOK, "登录成功")
+	case errors.Is(err, service.ErrInvalidUserOrPassword):
+		ctx.String(http.StatusOK, "用户不存在或是密码不正确")
+	default:
+		ctx.String(http.StatusOK, "系统错误")
+	}
 }
 
 func (uh *UserHandler) Edit(ctx *gin.Context) {
