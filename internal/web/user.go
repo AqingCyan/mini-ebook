@@ -2,18 +2,26 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"mini-ebook/internal/domain"
 	"mini-ebook/internal/service"
 	"net/http"
+	"strings"
+	"time"
 )
 
 const (
 	emailRegexPattern    = `^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,72}$`
 )
+
+var validationErrors = map[string]string{
+	"max": "超过最大长度限制",
+}
 
 type UserHandler struct {
 	emailRegExp    *regexp.Regexp
@@ -105,10 +113,10 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 		session := sessions.Default(ctx)
 		session.Set("userId", u.Id)
 		session.Options(sessions.Options{
-			MaxAge:   900 * 4,
+			MaxAge:   3600 * 12,
 			HttpOnly: true,
 		})
-		err := session.Save() // must call "save func"
+		err := session.Save() // 必须调用 Save 方法才能保证 session 设置的字段生效
 		if err != nil {
 			ctx.String(http.StatusOK, "系统错误")
 			return
@@ -122,9 +130,85 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 }
 
 func (uh *UserHandler) Edit(ctx *gin.Context) {
+	type EditReq struct {
+		AboutMe  string `json:"aboutMe" validate:"max=200"`
+		Birthday string `json:"birthday"`
+		Nickname string `json:"nickname" validate:"max=20"`
+	}
+	var req EditReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
 
+	var validate *validator.Validate
+	validate = validator.New()
+
+	if err := validate.Struct(req); err != nil {
+		var e []string
+		for _, err := range err.(validator.ValidationErrors) {
+			errorMessage := fmt.Sprintf("%s %s", err.Namespace(), validationErrors[err.ActualTag()])
+			e = append(e, errorMessage)
+		}
+		ctx.String(http.StatusBadRequest, strings.Join(e, "; "))
+		return
+	}
+
+	t, err := time.Parse(time.DateOnly, req.Birthday)
+	if err != nil {
+		ctx.String(http.StatusOK, "生日格式异常")
+		return
+	}
+
+	if uId, ok := checkUserId(ctx); ok {
+		err = uh.svc.UpdateUserInfo(ctx, domain.User{
+			Id:       uId,
+			Nickname: req.Nickname,
+			Birthday: t,
+			AboutMe:  req.AboutMe,
+		})
+		if err != nil {
+			ctx.String(http.StatusOK, "更新失败")
+			return
+		}
+	} else {
+		ctx.String(http.StatusOK, "用户信息错误")
+	}
+
+	ctx.String(http.StatusOK, "更新成功")
 }
 
 func (uh *UserHandler) Profile(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "这是 Profile")
+	if uId, ok := checkUserId(ctx); ok {
+		u, err := uh.svc.FindInfoByUserId(ctx, uId)
+		if err != nil {
+			ctx.String(http.StatusOK, "系统错误")
+			return
+		}
+
+		type User struct {
+			Nickname string `json:"nickname"`
+			Email    string `json:"email"`
+			AboutMe  string `json:"aboutMe"`
+			Birthday string `json:"birthday"`
+		}
+		ctx.JSON(http.StatusOK, User{
+			Nickname: u.Nickname,
+			Email:    u.Email,
+			AboutMe:  u.AboutMe,
+			Birthday: u.Birthday.Format(time.DateOnly),
+		})
+	} else {
+		ctx.String(http.StatusOK, "用户信息错误")
+	}
+}
+
+/* ---工具方法--- */
+
+func checkUserId(ctx *gin.Context) (int64, bool) {
+	session := sessions.Default(ctx)
+	uId, ok := session.Get("userId").(int64)
+	if !ok {
+		return 0, false
+	}
+	return uId, true
 }
