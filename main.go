@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -9,6 +11,7 @@ import (
 	"mini-ebook/internal/repository/dao"
 	"mini-ebook/internal/service"
 	"mini-ebook/internal/web"
+	"mini-ebook/internal/web/middleware"
 	"strings"
 	"time"
 )
@@ -43,6 +46,7 @@ func initDB() *gorm.DB {
 func initWebServer() *gin.Engine {
 	server := gin.Default()
 
+	// cors middleware
 	server.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
@@ -54,6 +58,11 @@ func initWebServer() *gin.Engine {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
+
+	// session setter middleware
+	login := &middleware.LoginMiddlewareBuilder{}
+	store := cookie.NewStore([]byte("secret")) // init session
+	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
 
 	return server
 }
