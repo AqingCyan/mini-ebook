@@ -8,23 +8,23 @@
 
 #### 正常请求
 
-![image.png](https://s2.loli.net/2023/10/05/ANbzoZryPLkTmlw.png)
+<img src="https://s2.loli.net/2023/10/05/ANbzoZryPLkTmlw.png" width="400" alt="screen">
 
-![image.png](https://s2.loli.net/2023/10/05/YNS3WIsPy57Gd81.png)
+<img src="https://s2.loli.net/2023/10/05/YNS3WIsPy57Gd81.png" width="400" alt="screen">
 
 #### 错误校验
 
 假定昵称只能 20 字，关于我只能 200 字，现超出字数
 
-![image.png](https://s2.loli.net/2023/10/05/DWI73VMX8RBOzZf.png)
+<img src="https://s2.loli.net/2023/10/05/DWI73VMX8RBOzZf.png" width="400" alt="screen">
 
-![image.png](https://s2.loli.net/2023/10/05/SmTKAu7ClrBQDYF.png)
+<img src="https://s2.loli.net/2023/10/05/SmTKAu7ClrBQDYF.png" width="400" alt="screen">
 
 > 校验的功能实现使用了社区里推荐的校验库，小小偷懒了。
 
 生日格式校验
 
-![image.png](https://s2.loli.net/2023/10/05/Cpx4yTRNU6IcHMz.png)
+<img src="https://s2.loli.net/2023/10/05/Cpx4yTRNU6IcHMz.png" width="400" alt="screen">
 
 > 使用的是 `time` 包中的 `Parse` 方法，原生的方式进行校验，但是应该也可以使用校验库进行这部分的校验。
 
@@ -32,4 +32,4 @@
 
 ### 查询接口实现
 
-![image.png](https://s2.loli.net/2023/10/05/rjHSK1t2IlRxCFw.png)
+<img src="https://s2.loli.net/2023/10/05/rjHSK1t2IlRxCFw.png" width="400" alt="screen">
