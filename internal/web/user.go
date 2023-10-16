@@ -104,10 +104,7 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	case err == nil:
 		session := sessions.Default(ctx)
 		session.Set("userId", u.Id)
-		session.Options(sessions.Options{
-			MaxAge:   900 * 4,
-			HttpOnly: true,
-		})
+		session.Options(sessions.Options{MaxAge: 30})
 		err := session.Save() // must call "save func"
 		if err != nil {
 			ctx.String(http.StatusOK, "系统错误")
