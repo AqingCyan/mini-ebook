@@ -60,13 +60,7 @@ func initWebServer() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	// session setter middleware
-	login := &middleware.LoginMiddlewareBuilder{}
-	store, err := redis.NewStore(16, "tcp", "localhost:6379", "", []byte("FrNCWQJKwK0W3yATzClayboYmU700J5B"), []byte("Qg2fflCzmy2bn5dNOsUVHtCyJKGbK4u5"))
-	if err != nil {
-		panic(err)
-	}
-	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
+	useJWT(server)
 
 	return server
 }
@@ -77,4 +71,19 @@ func initUserHandler(db *gorm.DB, server *gin.Engine) {
 	us := service.NewUserService(ur)
 	hdl := web.NewUserHandler(us)
 	hdl.RegisterRoutes(server)
+}
+
+func useJWT(server *gin.Engine) {
+	login := &middleware.LoginJWTMiddlewareBuilder{}
+	server.Use(login.CheckLogin())
+}
+
+func useSession(server *gin.Engine) {
+	// session setter middleware
+	login := &middleware.LoginMiddlewareBuilder{}
+	store, err := redis.NewStore(16, "tcp", "localhost:6379", "", []byte("FrNCWQJKwK0W3yATzClayboYmU700J5B"), []byte("Qg2fflCzmy2bn5dNOsUVHtCyJKGbK4u5"))
+	if err != nil {
+		panic(err)
+	}
+	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
 }

@@ -17,7 +17,12 @@ const (
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,72}$`
 )
 
-var JWTKey = []byte("FrNCWQJKwK0W3yATzClayboYmU700J5A")
+var JWT_KEY = []byte("FrNCWQJKwK0W3yATzClayboYmU700J5A")
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	Uid int64
+}
 
 type UserHandler struct {
 	emailRegExp    *regexp.Regexp
@@ -143,7 +148,7 @@ func (uh *UserHandler) LoginJWT(ctx *gin.Context) {
 			},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
-		tokenStr, err := token.SignedString(JWTKey)
+		tokenStr, err := token.SignedString(JWT_KEY)
 		if err != nil {
 			ctx.String(http.StatusOK, "系统错误")
 		}
@@ -160,10 +165,6 @@ func (uh *UserHandler) Edit(ctx *gin.Context) {
 }
 
 func (uh *UserHandler) Profile(ctx *gin.Context) {
+	//us := ctx.MustGet("user").(UserClaims)
 	ctx.String(http.StatusOK, "这是 Profile")
-}
-
-type UserClaims struct {
-	jwt.RegisteredClaims
-	Uid int64
 }
