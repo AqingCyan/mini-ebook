@@ -40,7 +40,7 @@ func (m *LoginMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 		if val == nil || !ok || now.Sub(lastUpdateTime) > time.Second*10 {
 			session.Set(updateTimeKey, now)
 			session.Set("userId", userId)
-			session.Options(sessions.Options{MaxAge: 30})
+			session.Options(sessions.Options{MaxAge: 3600, HttpOnly: true})
 			err := session.Save()
 			if err != nil {
 				// 打日志

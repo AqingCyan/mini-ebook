@@ -50,6 +50,7 @@ func initWebServer() *gin.Engine {
 	server.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		ExposeHeaders:    []string{"x-jwt-token"}, // 允许前端访问服务响应的头部
 		AllowOriginFunc: func(origin string) bool {
 			if strings.HasPrefix(origin, "http://localhost") {
 				return true

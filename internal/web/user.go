@@ -5,15 +5,19 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"mini-ebook/internal/domain"
 	"mini-ebook/internal/service"
 	"net/http"
+	"time"
 )
 
 const (
 	emailRegexPattern    = `^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,72}$`
 )
+
+var JWTKey = []byte("FrNCWQJKwK0W3yATzClayboYmU700J5A")
 
 type UserHandler struct {
 	emailRegExp    *regexp.Regexp
@@ -33,7 +37,8 @@ func (uh *UserHandler) RegisterRoutes(server *gin.Engine) {
 	group := server.Group("/users")
 
 	group.POST("/signup", uh.Signup)
-	group.POST("/login", uh.Login)
+	//group.POST("/login", uh.Login)
+	group.POST("/login", uh.LoginJWT)
 	group.POST("/edit", uh.Edit)
 	group.GET("/profile", uh.Profile)
 }
@@ -104,7 +109,7 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	case err == nil:
 		session := sessions.Default(ctx)
 		session.Set("userId", u.Id)
-		session.Options(sessions.Options{MaxAge: 30})
+		session.Options(sessions.Options{MaxAge: 3600, HttpOnly: true})
 		err := session.Save() // must call "save func"
 		if err != nil {
 			ctx.String(http.StatusOK, "系统错误")
@@ -118,10 +123,47 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	}
 }
 
-func (uh *UserHandler) Edit(ctx *gin.Context) {
+func (uh *UserHandler) LoginJWT(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
 
+	u, err := uh.svc.Login(ctx, req.Email, req.Password)
+	switch {
+	case err == nil:
+		uc := UserClaims{
+			Uid: u.Id,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)), // 60 分钟过期
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
+		tokenStr, err := token.SignedString(JWTKey)
+		if err != nil {
+			ctx.String(http.StatusOK, "系统错误")
+		}
+		ctx.Header("x-jwt-token", tokenStr)
+		ctx.String(http.StatusOK, "登录成功")
+	case errors.Is(err, service.ErrInvalidUserOrPassword):
+		ctx.String(http.StatusOK, "用户不存在或是密码不正确")
+	default:
+		ctx.String(http.StatusOK, "系统错误")
+	}
+}
+
+func (uh *UserHandler) Edit(ctx *gin.Context) {
 }
 
 func (uh *UserHandler) Profile(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "这是 Profile")
+}
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	Uid int64
 }
