@@ -34,7 +34,7 @@ func (m *LoginJWTMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 		tokenStr := segs[1]
 		var uc web.UserClaims
 		token, err := jwt.ParseWithClaims(tokenStr, &uc, func(token *jwt.Token) (interface{}, error) {
-			return web.JWT_KEY, nil
+			return web.JwtKey, nil
 		})
 		if err != nil {
 			println(err.Error())
@@ -57,7 +57,7 @@ func (m *LoginJWTMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 		// 剩余 20 分钟过期的时候刷新 Token
 		if expireTime.Sub(time.Now()) < time.Minute*20 {
 			uc.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 60))
-			tokenStr, err = token.SignedString(web.JWT_KEY)
+			tokenStr, err = token.SignedString(web.JwtKey)
 			ctx.Header("x-jwt-token", tokenStr)
 			if err != nil {
 				log.Println(err)

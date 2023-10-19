@@ -17,7 +17,7 @@ const (
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,72}$`
 )
 
-var JWT_KEY = []byte("FrNCWQJKwK0W3yATzClayboYmU700J5A")
+var JwtKey = []byte("FrNCWQJKwK0W3yATzClayboYmU700J5A")
 
 type UserClaims struct {
 	jwt.RegisteredClaims
@@ -148,7 +148,7 @@ func (uh *UserHandler) LoginJWT(ctx *gin.Context) {
 			},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
-		tokenStr, err := token.SignedString(JWT_KEY)
+		tokenStr, err := token.SignedString(JwtKey)
 		if err != nil {
 			ctx.String(http.StatusOK, "系统错误")
 		}

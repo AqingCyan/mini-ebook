@@ -3,8 +3,9 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	sessionRedis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"mini-ebook/internal/repository"
@@ -12,6 +13,7 @@ import (
 	"mini-ebook/internal/service"
 	"mini-ebook/internal/web"
 	"mini-ebook/internal/web/middleware"
+	"mini-ebook/pkg/ginx/middleware/ratelimit"
 	"strings"
 	"time"
 )
@@ -60,6 +62,9 @@ func initWebServer() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 10).Build())
+
 	useJWT(server)
 
 	return server
@@ -81,7 +86,10 @@ func useJWT(server *gin.Engine) {
 func useSession(server *gin.Engine) {
 	// session setter middleware
 	login := &middleware.LoginMiddlewareBuilder{}
-	store, err := redis.NewStore(16, "tcp", "localhost:6379", "", []byte("FrNCWQJKwK0W3yATzClayboYmU700J5B"), []byte("Qg2fflCzmy2bn5dNOsUVHtCyJKGbK4u5"))
+	store, err := sessionRedis.NewStore(
+		16, "tcp", "localhost:6379", "",
+		[]byte("FrNCWQJKwK0W3yATzClayboYmU700J5B"), []byte("Qg2fflCzmy2bn5dNOsUVHtCyJKGbK4u5"),
+	)
 	if err != nil {
 		panic(err)
 	}
