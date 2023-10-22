@@ -198,57 +198,39 @@ func (uh *UserHandler) Edit(ctx *gin.Context) {
 		return
 	}
 
-	if uId, ok := checkUserId(ctx); ok {
-		err = uh.svc.UpdateUserInfo(ctx, domain.User{
-			Id:       uId,
-			Nickname: req.Nickname,
-			Birthday: t,
-			AboutMe:  req.AboutMe,
-		})
-		if err != nil {
-			ctx.String(http.StatusOK, "更新失败")
-			return
-		}
-	} else {
-		ctx.String(http.StatusOK, "用户信息错误")
+	us := ctx.MustGet("user").(UserClaims)
+	err = uh.svc.UpdateUserInfo(ctx, domain.User{
+		Id:       us.Uid,
+		Nickname: req.Nickname,
+		Birthday: t,
+		AboutMe:  req.AboutMe,
+	})
+	if err != nil {
+		ctx.String(http.StatusOK, "更新失败")
+		return
 	}
 
 	ctx.String(http.StatusOK, "更新成功")
 }
 
 func (uh *UserHandler) Profile(ctx *gin.Context) {
-	//us := ctx.MustGet("user").(UserClaims)
-	if uId, ok := checkUserId(ctx); ok {
-		u, err := uh.svc.FindInfoByUserId(ctx, uId)
-		if err != nil {
-			ctx.String(http.StatusOK, "系统错误")
-			return
-		}
-
-		type User struct {
-			Nickname string `json:"nickname"`
-			Email    string `json:"email"`
-			AboutMe  string `json:"aboutMe"`
-			Birthday string `json:"birthday"`
-		}
-		ctx.JSON(http.StatusOK, User{
-			Nickname: u.Nickname,
-			Email:    u.Email,
-			AboutMe:  u.AboutMe,
-			Birthday: u.Birthday.Format(time.DateOnly),
-		})
-	} else {
-		ctx.String(http.StatusOK, "用户信息错误")
+	us := ctx.MustGet("user").(UserClaims)
+	u, err := uh.svc.FindInfoByUserId(ctx, us.Uid)
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
 	}
-}
 
-/* ---工具方法--- */
-
-func checkUserId(ctx *gin.Context) (int64, bool) {
-	session := sessions.Default(ctx)
-	uId, ok := session.Get("userId").(int64)
-	if !ok {
-		return 0, false
+	type User struct {
+		Nickname string `json:"nickname"`
+		Email    string `json:"email"`
+		AboutMe  string `json:"aboutMe"`
+		Birthday string `json:"birthday"`
 	}
-	return uId, true
+	ctx.JSON(http.StatusOK, User{
+		Nickname: u.Nickname,
+		Email:    u.Email,
+		AboutMe:  u.AboutMe,
+		Birthday: u.Birthday.Format(time.DateOnly),
+	})
 }
