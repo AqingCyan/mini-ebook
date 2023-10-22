@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-book-record-deployment
+spec:
+  # 三个副本
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mini-book-record
+  template:
+    metadata:
+      labels:
+        # 这个 mini-book-record 一定与前面的 selector 的 matchLables 匹配上
+        app: mini-book-record
+    # 这个是 Deplpyment 管理的 Pod 的模板
+    spec:
+      # Pod 里面运行的所有的 container
+      containers:
+        - name: mini-book-record
+          image: cyanaqing/mini-book:v0.0.1
+          ports:
+            - containerPort: 8080

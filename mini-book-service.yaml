@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mini-book-record
+spec:
+  selector:
+    app: mini-book-record
+  ports:
+    - name: http
+      port: 98
+      protocol: TCP
+      targetPort: 8080
+  type: LoadBalancer
+  

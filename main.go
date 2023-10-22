@@ -14,17 +14,23 @@ import (
 	"mini-ebook/internal/web"
 	"mini-ebook/internal/web/middleware"
 	"mini-ebook/pkg/ginx/middleware/ratelimit"
+	"net/http"
 	"strings"
 	"time"
 )
 
 func main() {
-	db := initDB()
+	//db := initDB()
 
-	server := initWebServer()
+	//server := initWebServer()
 
-	initUserHandler(db, server)
+	//initUserHandler(db, server)
 
+	// 为了尝试部署，先不考虑 mysql 与 redis
+	server := gin.Default()
+	server.GET("/hello", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "Hello, 启动成功")
+	})
 	err := server.Run(":8080")
 	if err != nil {
 		panic(err)
