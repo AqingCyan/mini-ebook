@@ -10,5 +10,5 @@ spec:
       port: 98
       protocol: TCP
       targetPort: 8080
-  type: LoadBalancer
+  type: ClusterIP
   
