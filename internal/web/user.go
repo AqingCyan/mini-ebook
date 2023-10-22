@@ -7,6 +7,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 	"mini-ebook/internal/domain"
 	"mini-ebook/internal/service"
 	"net/http"
@@ -21,6 +22,13 @@ const (
 
 var validationErrors = map[string]string{
 	"max": "超过最大长度限制",
+}
+
+var JwtKey = []byte("FrNCWQJKwK0W3yATzClayboYmU700J5A")
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	Uid int64
 }
 
 type UserHandler struct {
@@ -41,7 +49,8 @@ func (uh *UserHandler) RegisterRoutes(server *gin.Engine) {
 	group := server.Group("/users")
 
 	group.POST("/signup", uh.Signup)
-	group.POST("/login", uh.Login)
+	//group.POST("/login", uh.Login)
+	group.POST("/login", uh.LoginJWT)
 	group.POST("/edit", uh.Edit)
 	group.GET("/profile", uh.Profile)
 }
@@ -112,15 +121,45 @@ func (uh *UserHandler) Login(ctx *gin.Context) {
 	case err == nil:
 		session := sessions.Default(ctx)
 		session.Set("userId", u.Id)
-		session.Options(sessions.Options{
-			MaxAge:   3600 * 12,
-			HttpOnly: true,
-		})
-		err := session.Save() // 必须调用 Save 方法才能保证 session 设置的字段生效
+		session.Options(sessions.Options{MaxAge: 3600, HttpOnly: true})
+		err := session.Save() // must call "save func"
 		if err != nil {
 			ctx.String(http.StatusOK, "系统错误")
 			return
 		}
+		ctx.String(http.StatusOK, "登录成功")
+	case errors.Is(err, service.ErrInvalidUserOrPassword):
+		ctx.String(http.StatusOK, "用户不存在或是密码不正确")
+	default:
+		ctx.String(http.StatusOK, "系统错误")
+	}
+}
+
+func (uh *UserHandler) LoginJWT(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+
+	u, err := uh.svc.Login(ctx, req.Email, req.Password)
+	switch {
+	case err == nil:
+		uc := UserClaims{
+			Uid: u.Id,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)), // 60 分钟过期
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
+		tokenStr, err := token.SignedString(JwtKey)
+		if err != nil {
+			ctx.String(http.StatusOK, "系统错误")
+		}
+		ctx.Header("x-jwt-token", tokenStr)
 		ctx.String(http.StatusOK, "登录成功")
 	case errors.Is(err, service.ErrInvalidUserOrPassword):
 		ctx.String(http.StatusOK, "用户不存在或是密码不正确")
@@ -178,6 +217,7 @@ func (uh *UserHandler) Edit(ctx *gin.Context) {
 }
 
 func (uh *UserHandler) Profile(ctx *gin.Context) {
+	//us := ctx.MustGet("user").(UserClaims)
 	if uId, ok := checkUserId(ctx); ok {
 		u, err := uh.svc.FindInfoByUserId(ctx, uId)
 		if err != nil {
