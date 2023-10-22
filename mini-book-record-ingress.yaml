@@ -16,5 +16,5 @@ spec:
               service:
                 name: mini-book-record
                 port:
-                  number: 98
+                  number: 8081
                 

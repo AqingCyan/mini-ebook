@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"mini-ebook/config"
 	"mini-ebook/internal/repository"
 	"mini-ebook/internal/repository/dao"
 	"mini-ebook/internal/service"
@@ -20,14 +21,10 @@ import (
 )
 
 func main() {
-	//db := initDB()
+	db := initDB()
+	server := initWebServer()
+	initUserHandler(db, server)
 
-	//server := initWebServer()
-
-	//initUserHandler(db, server)
-
-	// 为了尝试部署，先不考虑 mysql 与 redis
-	server := gin.Default()
 	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "Hello, 启动成功")
 	})
@@ -38,7 +35,7 @@ func main() {
 }
 
 func initDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/mini_ebook"))
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
 	if err != nil {
 		panic(err)
 	}
@@ -68,7 +65,7 @@ func initWebServer() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	redisClient := redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 10).Build())
 
 	useJWT(server)

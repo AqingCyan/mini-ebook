@@ -7,7 +7,7 @@ spec:
     app: mini-book-record
   ports:
     - name: http
-      port: 98
+      port: 8081
       protocol: TCP
       targetPort: 8080
   type: ClusterIP
