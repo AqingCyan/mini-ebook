@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-book-record-redis
+  labels:
+    app: mini-book-record-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mini-book-record-redis
+  template:
+    metadata:
+      name: mini-book-record-redis
+      labels:
+        app: mini-book-record-redis
+    spec:
+      containers:
+        - name: mini-book-record-redis
+          image: redis:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+      restartPolicy: Always
+      

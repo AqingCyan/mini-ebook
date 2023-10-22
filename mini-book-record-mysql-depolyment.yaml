@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-book-record-mysql
+  labels:
+    app: mini-book-record-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mini-book-record-mysql
+  template:
+    metadata:
+      name: mini-book-record-mysql
+      labels:
+        app: mini-book-record-mysql
+    spec:
+      containers:
+        - name: mini-book-record-mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
+      restartPolicy: Always
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mini-book-mysql-pvc
+      

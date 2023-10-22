@@ -8,23 +8,26 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"mini-ebook/config"
 	"mini-ebook/internal/repository"
 	"mini-ebook/internal/repository/dao"
 	"mini-ebook/internal/service"
 	"mini-ebook/internal/web"
 	"mini-ebook/internal/web/middleware"
 	"mini-ebook/pkg/ginx/middleware/ratelimit"
+	"net/http"
 	"strings"
 	"time"
 )
 
 func main() {
 	db := initDB()
-
 	server := initWebServer()
-
 	initUserHandler(db, server)
 
+	server.GET("/hello", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "Hello, 启动成功")
+	})
 	err := server.Run(":8080")
 	if err != nil {
 		panic(err)
@@ -32,7 +35,7 @@ func main() {
 }
 
 func initDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/mini_ebook"))
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
 	if err != nil {
 		panic(err)
 	}
@@ -62,7 +65,7 @@ func initWebServer() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	redisClient := redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 10).Build())
 
 	useJWT(server)
