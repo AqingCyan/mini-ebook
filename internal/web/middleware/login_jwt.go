@@ -41,8 +41,15 @@ func (m *LoginJWTMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
+
 		if token == nil || !token.Valid {
 			// token 解析成功但是非法或者过期了
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		if uc.UserAgent != ctx.GetHeader("User-Agent") {
+			// 后期讲到了监控告警的时候，这个地方要埋点
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
