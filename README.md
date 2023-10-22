@@ -33,3 +33,14 @@
 ### 查询接口实现
 
 <img src="https://s2.loli.net/2023/10/05/rjHSK1t2IlRxCFw.png" width="550" alt="screen">
+
+
+## 第三周作业
+
+<img src="https://s2.loli.net/2023/10/23/4Mi9FclDvwL7Tym.png" width="550" alt="screen">
+
+<em>_kubectl get services 与 kubectl get pods 的截图_</em>
+
+<img src="https://s2.loli.net/2023/10/23/Eo1z9ywJtph7Nr3.png" width="550" alt="screen">
+
+<em>_浏览器访问 mini-book，能够正确得到响应的截图_</em>
