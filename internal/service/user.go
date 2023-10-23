@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"mini-ebook/internal/domain"
 	"mini-ebook/internal/repository"
@@ -41,10 +42,18 @@ func (svc *UserService) Login(ctx context.Context, email string, password string
 		return domain.User{}, err
 	}
 
-	// check password
+	// 检查密码是否匹配
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
 		return domain.User{}, ErrInvalidUserOrPassword
 	}
 	return u, nil
+}
+
+func (svc *UserService) UpdateUserInfo(ctx *gin.Context, user domain.User) error {
+	return svc.repo.UpdateUserInfo(ctx, user)
+}
+
+func (svc *UserService) FindInfoByUserId(ctx *gin.Context, uid int64) (domain.User, error) {
+	return svc.repo.FindById(ctx, uid)
 }

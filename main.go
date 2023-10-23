@@ -47,7 +47,7 @@ func initDB() *gorm.DB {
 func initWebServer() *gin.Engine {
 	server := gin.Default()
 
-	// cors middleware
+	// cors 跨域中间件
 	server.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
