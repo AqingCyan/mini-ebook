@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"mini-ebook/config"
 	"mini-ebook/internal/repository"
+	"mini-ebook/internal/repository/cache"
 	"mini-ebook/internal/repository/dao"
 	"mini-ebook/internal/service"
 	"mini-ebook/internal/web"
@@ -21,8 +22,10 @@ import (
 
 func main() {
 	db := initDB()
-	server := initWebServer()
-	initUserHandler(db, server)
+	redisClient := redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
+
+	server := initWebServer(redisClient)
+	initUserHandler(db, server, redisClient)
 
 	err := server.Run(":8080")
 	if err != nil {
@@ -44,7 +47,7 @@ func initDB() *gorm.DB {
 	return db
 }
 
-func initWebServer() *gin.Engine {
+func initWebServer(redisClient redis.Cmdable) *gin.Engine {
 	server := gin.Default()
 
 	// cors 跨域中间件
@@ -62,7 +65,6 @@ func initWebServer() *gin.Engine {
 	}))
 
 	// 如果为了压测，得去掉下面的限流
-	redisClient := redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 10).Build())
 
 	useJWT(server)
@@ -70,9 +72,10 @@ func initWebServer() *gin.Engine {
 	return server
 }
 
-func initUserHandler(db *gorm.DB, server *gin.Engine) {
+func initUserHandler(db *gorm.DB, server *gin.Engine, redisClient redis.Cmdable) {
 	ud := dao.NewUserDao(db)
-	ur := repository.NewUserRepository(ud)
+	uc := cache.NewUserCache(redisClient)
+	ur := repository.NewUserRepository(ud, uc)
 	us := service.NewUserService(ur)
 	hdl := web.NewUserHandler(us)
 	hdl.RegisterRoutes(server)
