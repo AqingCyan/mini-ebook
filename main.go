@@ -15,7 +15,6 @@ import (
 	"mini-ebook/internal/web"
 	"mini-ebook/internal/web/middleware"
 	"mini-ebook/pkg/ginx/middleware/ratelimit"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -25,9 +24,6 @@ func main() {
 	server := initWebServer()
 	initUserHandler(db, server)
 
-	server.GET("/hello", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "Hello, 启动成功")
-	})
 	err := server.Run(":8080")
 	if err != nil {
 		panic(err)
@@ -65,6 +61,7 @@ func initWebServer() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	// 如果为了压测，得去掉下面的限流
 	redisClient := redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 10).Build())
 
