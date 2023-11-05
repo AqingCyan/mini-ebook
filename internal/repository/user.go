@@ -42,10 +42,12 @@ func (repo *UserRepository) FindByEmail(ctx context.Context, email string) (doma
 	return repo.toDomain(u), nil
 }
 
+// UpdateUserInfo 更新用户信息
 func (repo *UserRepository) UpdateUserInfo(ctx *gin.Context, u domain.User) error {
 	return repo.dao.UpdateByUserId(ctx, repo.toDaoEntity(u))
 }
 
+// FindById 根据 UserId 查询用户信息
 func (repo *UserRepository) FindById(ctx *gin.Context, uid int64) (domain.User, error) {
 	du, err := repo.cache.Get(ctx, uid)
 	// 只要 err 为 nil 就返回，err 不为 nil 就去查询数据库

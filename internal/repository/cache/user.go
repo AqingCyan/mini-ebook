@@ -45,6 +45,7 @@ func (c *UserCache) key(uid int64) string {
 	return fmt.Sprintf("user:info:%d", uid)
 }
 
+// NewUserCache 创建基于 Redis 的缓存
 func NewUserCache(cmd redis.Cmdable) *UserCache {
 	return &UserCache{
 		cmd:        cmd,
