@@ -34,6 +34,7 @@ func (repo *UserRepository) Create(ctx context.Context, u domain.User) error {
 	})
 }
 
+// FindByEmail 根据邮箱查询用户信息
 func (repo *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	u, err := repo.dao.FindByEmail(ctx, email)
 	if err != nil {
