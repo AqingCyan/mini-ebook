@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"mini-ebook/internal/repository"
@@ -27,7 +28,12 @@ func (svc *CodeService) Send(ctx context.Context, biz string, phone string) erro
 
 // Verify 验证验证码
 func (svc *CodeService) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
-	return true, nil
+	ok, err := svc.repo.Verify(ctx, biz, phone, inputCode)
+	if errors.Is(err, repository.ErrCodeVerifyTooMany) {
+		// 相当于，我们对外面屏蔽了验证次数过多的错误，只是告诉调用者，你这个不对
+		return false, nil
+	}
+	return ok, err
 }
 
 func (svc *CodeService) generate() string {

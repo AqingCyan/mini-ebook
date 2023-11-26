@@ -2,6 +2,7 @@
 local key = KEYS[1]
 -- 使用次数，也就是验证次数
 local cntKey = key..":cnt"
+-- 你准备存储的验证码
 local val = ARGV[1]
 -- 验证码的有效时间是十分钟，600秒
 local ttl = tonumber(redis.call("ttl", key))
@@ -9,7 +10,7 @@ local ttl = tonumber(redis.call("ttl", key))
 -- 在 Redis 中，ttl 为 -2 表示 key 不存在，-1 表示 key 存在，但是没有过期时间
 -- 其余情况，ttl 为剩余的过期时间
 
--- 在下面的逻辑中，如果  ttl 为 -1，表示 key 存在，但是没有过期时间，因此不能发送验证码，这是一个错误情况
+-- 在下面的逻辑中，如果  ttl 为 -1，表示 key 存在，但是没有过期时间，因此不能发送验证码，这是一个系统错误，可能是某些对 Redis 不规范的使用造成的
 -- 如果 ttl 为 -2，表示 key 不存在，可以发送验证码
 -- 或者 ttl 剩余时间小于 540 秒，也可以发送验证码，这意味着上一次发送的验证码已经超过 1 分钟了
 

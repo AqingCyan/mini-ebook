@@ -11,8 +11,11 @@ import (
 var (
 	//go:embed lua/set_code.lua
 	luaSetCode string
+	//go:embed lua/verify_code.lua
+	luaVerifyCode string
 
-	ErrSendToMany = errors.New("发送太频繁")
+	ErrCodeSendToMany   = errors.New("发送太频繁")
+	ErrCodeVerifyToMany = errors.New("发送太频繁")
 )
 
 type CodeCache struct {
@@ -36,9 +39,26 @@ func (c *CodeCache) Set(ctx context.Context, biz, phone, code string) error {
 	case -2:
 		return errors.New("验证码存在，但是没有过期时间")
 	case -1:
-		return ErrSendToMany
+		return ErrCodeSendToMany
 	default:
 		return nil
+	}
+}
+
+func (c *CodeCache) Verify(ctx context.Context, biz, phone, code string) (bool, error) {
+	res, err := c.cmd.Eval(ctx, luaVerifyCode, []string{c.Key(biz, phone)}, code).Int()
+	if err != nil {
+		// 调用 redis 出了问题
+		return false, err
+	}
+
+	switch res {
+	case -2:
+		return false, nil
+	case -1:
+		return false, ErrCodeVerifyToMany
+	default:
+		return true, nil
 	}
 }
 
