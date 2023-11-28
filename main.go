@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
-	sessionRedis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
@@ -13,6 +11,8 @@ import (
 	"mini-ebook/internal/repository/cache"
 	"mini-ebook/internal/repository/dao"
 	"mini-ebook/internal/service"
+	"mini-ebook/internal/service/sms"
+	"mini-ebook/internal/service/sms/localSms"
 	"mini-ebook/internal/web"
 	"mini-ebook/internal/web/middleware"
 	"mini-ebook/pkg/ginx/middleware/ratelimit"
@@ -25,7 +25,10 @@ func main() {
 	redisClient := redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
 
 	server := initWebServer(redisClient)
-	initUserHandler(db, server, redisClient)
+	userDB := dao.NewUserDao(db)
+	userSvc := initUserSvc(userDB, redisClient)
+	codeSvc := initCodeSvc(redisClient)
+	initUserHandler(userSvc, codeSvc, server)
 
 	err := server.Run(":8080")
 	if err != nil {
@@ -72,29 +75,28 @@ func initWebServer(redisClient redis.Cmdable) *gin.Engine {
 	return server
 }
 
-func initUserHandler(db *gorm.DB, server *gin.Engine, redisClient redis.Cmdable) {
-	ud := dao.NewUserDao(db)
+func initUserHandler(userSvc *service.UserService, codeSvc *service.CodeService, server *gin.Engine) {
+	hdl := web.NewUserHandler(userSvc, codeSvc)
+	hdl.RegisterRoutes(server)
+}
+
+func initUserSvc(ud *dao.UserDao, redisClient redis.Cmdable) *service.UserService {
 	uc := cache.NewUserCache(redisClient)
 	ur := repository.NewUserRepository(ud, uc)
-	us := service.NewUserService(ur)
-	hdl := web.NewUserHandler(us)
-	hdl.RegisterRoutes(server)
+	return service.NewUserService(ur)
+}
+
+func initCodeSvc(redisClient redis.Cmdable) *service.CodeService {
+	cc := cache.NewCodeCache(redisClient)
+	crepo := repository.NewCodeRepository(cc)
+	return service.NewCodeService(crepo, initMemorySms())
+}
+
+func initMemorySms() sms.Service {
+	return localSms.NewServcie()
 }
 
 func useJWT(server *gin.Engine) {
 	login := &middleware.LoginJWTMiddlewareBuilder{}
 	server.Use(login.CheckLogin())
-}
-
-func useSession(server *gin.Engine) {
-	// session setter middleware
-	login := &middleware.LoginMiddlewareBuilder{}
-	store, err := sessionRedis.NewStore(
-		16, "tcp", "localhost:6379", "",
-		[]byte("FrNCWQJKwK0W3yATzClayboYmU700J5B"), []byte("Qg2fflCzmy2bn5dNOsUVHtCyJKGbK4u5"),
-	)
-	if err != nil {
-		panic(err)
-	}
-	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
 }

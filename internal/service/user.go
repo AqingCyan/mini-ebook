@@ -3,14 +3,13 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"mini-ebook/internal/domain"
 	"mini-ebook/internal/repository"
 )
 
 var (
-	ErrDuplicateEmail        = repository.ErrDuplicateEmail
+	ErrDuplicateEmail        = repository.ErrDuplicateUser
 	ErrInvalidUserOrPassword = errors.New("用户不存在或是密码不正确")
 )
 
@@ -50,14 +49,34 @@ func (svc *UserService) Login(ctx context.Context, email string, password string
 	return u, nil
 }
 
-func (svc *UserService) UpdateUserInfo(ctx *gin.Context, user domain.User) error {
+func (svc *UserService) UpdateUserInfo(ctx context.Context, user domain.User) error {
 	return svc.repo.UpdateUserInfo(ctx, user)
 }
 
-func (svc *UserService) FindInfoByUserId(ctx *gin.Context, uid int64) (domain.User, error) {
+func (svc *UserService) FindInfoByUserId(ctx context.Context, uid int64) (domain.User, error) {
 	return svc.repo.FindById(ctx, uid)
 }
 
-func (svc *UserService) FindOrCreate(ctx *gin.Context, phone string) (domain.User, error) {
-	return domain.User{}, nil
+func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+	// 先找一下，我们认为大部分用户是已经存在的用户
+	_, err := svc.repo.FindByPhone(ctx, phone)
+	if !errors.Is(err, repository.ErrUserNotFound) {
+		// 有两种情况
+		// err == nil, u 是可用的
+		// err != nil, 系统错误
+		return domain.User{}, err
+	}
+
+	// 如果没找到该用户
+	err = svc.repo.Create(ctx, domain.User{
+		Phone: phone,
+	})
+	// 两种可能：一种是 err 恰好是唯一索引冲突（phone）；一种是 err 不为 nil，系统错误
+	if err != nil && !errors.Is(err, repository.ErrDuplicateUser) {
+		return domain.User{}, err
+	}
+
+	// 要么 err == nil，要么 ErrDuplicateUser 也代表用户存在
+	// 考虑到生产环境有主从延迟，刚插入的数据不一定能立马查出来，所以这里理论上讲应该强制走主库
+	return svc.repo.FindByPhone(ctx, phone)
 }

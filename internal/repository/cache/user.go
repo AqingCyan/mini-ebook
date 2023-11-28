@@ -1,9 +1,9 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"mini-ebook/internal/domain"
 	"time"
@@ -15,7 +15,7 @@ type UserCache struct {
 }
 
 // Get 获取缓存中的 User
-func (c UserCache) Get(ctx *gin.Context, uid int64) (domain.User, error) {
+func (c UserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
 	key := c.key(uid)
 	// 读取缓存后反序列化
 	data, err := c.cmd.Get(ctx, key).Result()
@@ -29,7 +29,7 @@ func (c UserCache) Get(ctx *gin.Context, uid int64) (domain.User, error) {
 }
 
 // Set 将 User 序列化后设置到缓存中
-func (c UserCache) Set(ctx *gin.Context, du domain.User) error {
+func (c UserCache) Set(ctx context.Context, du domain.User) error {
 	key := c.key(du.Id)
 	// 序列化后缓存
 	data, err := json.Marshal(du)

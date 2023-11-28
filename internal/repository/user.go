@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
+	"database/sql"
 	"log"
 	"mini-ebook/internal/domain"
 	"mini-ebook/internal/repository/cache"
@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrDuplicateEmail = dao.ErrDuplicateEmail
-	ErrUserNotFound   = dao.ErrRecordNotFound
+	ErrDuplicateUser = dao.ErrDuplicateUser
+	ErrUserNotFound  = dao.ErrRecordNotFound
 )
 
 type UserRepository struct {
@@ -28,10 +28,7 @@ func NewUserRepository(dao *dao.UserDao, c *cache.UserCache) *UserRepository {
 }
 
 func (repo *UserRepository) Create(ctx context.Context, u domain.User) error {
-	return repo.dao.Insert(ctx, dao.User{
-		Email:    u.Email,
-		Password: u.Password,
-	})
+	return repo.dao.Insert(ctx, repo.toDaoEntity(u))
 }
 
 // FindByEmail 根据邮箱查询用户信息
@@ -44,12 +41,12 @@ func (repo *UserRepository) FindByEmail(ctx context.Context, email string) (doma
 }
 
 // UpdateUserInfo 更新用户信息
-func (repo *UserRepository) UpdateUserInfo(ctx *gin.Context, u domain.User) error {
+func (repo *UserRepository) UpdateUserInfo(ctx context.Context, u domain.User) error {
 	return repo.dao.UpdateByUserId(ctx, repo.toDaoEntity(u))
 }
 
 // FindById 根据 UserId 查询用户信息
-func (repo *UserRepository) FindById(ctx *gin.Context, uid int64) (domain.User, error) {
+func (repo *UserRepository) FindById(ctx context.Context, uid int64) (domain.User, error) {
 	du, err := repo.cache.Get(ctx, uid)
 	// 只要 err 为 nil 就返回，err 不为 nil 就去查询数据库
 	// 而 err 有两种可能：
@@ -74,12 +71,21 @@ func (repo *UserRepository) FindById(ctx *gin.Context, uid int64) (domain.User, 
 	return du, nil
 }
 
+func (repo *UserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+	u, err := repo.dao.FindByPhone(ctx, phone)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return repo.toDomain(u), nil
+}
+
 /* --- 一些内部用的工具方法 --- */
 
 func (repo *UserRepository) toDomain(u dao.User) domain.User {
 	return domain.User{
 		Id:       u.Id,
-		Email:    u.Email,
+		Email:    u.Email.String,
+		Phone:    u.Phone.String,
 		Password: u.Password,
 		Nickname: u.Nickname,
 		Birthday: time.UnixMilli(u.Birthday),
@@ -89,8 +95,15 @@ func (repo *UserRepository) toDomain(u dao.User) domain.User {
 
 func (repo *UserRepository) toDaoEntity(u domain.User) dao.User {
 	return dao.User{
-		Id:       u.Id,
-		Email:    u.Email,
+		Id: u.Id,
+		Email: sql.NullString{
+			String: u.Email,
+			Valid:  u.Email != "",
+		},
+		Phone: sql.NullString{
+			String: u.Phone,
+			Valid:  u.Phone != "",
+		},
 		Password: u.Password,
 		Birthday: u.Birthday.UnixMilli(),
 		AboutMe:  u.AboutMe,
