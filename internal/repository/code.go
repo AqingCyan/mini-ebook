@@ -6,6 +6,7 @@ import (
 )
 
 var ErrCodeVerifyTooMany = cache.ErrCodeVerifyToMany
+var ErrCodeSendTooMany = cache.ErrCodeSendToMany
 
 type CodeRepository struct {
 	cache cache.CodeCache

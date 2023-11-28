@@ -57,3 +57,7 @@ func (svc *UserService) UpdateUserInfo(ctx *gin.Context, user domain.User) error
 func (svc *UserService) FindInfoByUserId(ctx *gin.Context, uid int64) (domain.User, error) {
 	return svc.repo.FindById(ctx, uid)
 }
+
+func (svc *UserService) FindOrCreate(ctx *gin.Context, phone string) (domain.User, error) {
+	return domain.User{}, nil
+}

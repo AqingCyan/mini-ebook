@@ -9,6 +9,8 @@ import (
 	"mini-ebook/internal/service/sms"
 )
 
+var ErrorCodeSendTooMany = repository.ErrCodeSendTooMany
+
 type CodeService struct {
 	repo repository.CodeRepository
 	sms  sms.Service
