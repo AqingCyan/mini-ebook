@@ -35,11 +35,11 @@ type UserClaims struct {
 type UserHandler struct {
 	emailRegExp    *regexp.Regexp
 	passwordRegExp *regexp.Regexp
-	svc            *service.UserService
-	codeSvc        *service.CodeService
+	svc            service.UserService
+	codeSvc        service.CodeService
 }
 
-func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
 	return &UserHandler{
 		emailRegExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordRegExp: regexp.MustCompile(passwordRegexPattern, regexp.None),

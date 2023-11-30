@@ -13,15 +13,24 @@ var (
 	ErrInvalidUserOrPassword = errors.New("用户不存在或是密码不正确")
 )
 
-type UserService struct {
-	repo *repository.UserRepository
+type UserService interface {
+	Signup(ctx context.Context, u domain.User) error
+	Login(ctx context.Context, email string, password string) (domain.User, error)
+	UpdateUserInfo(ctx context.Context, user domain.User) error
+	UpdateNonSensitiveInfo(ctx context.Context, user domain.User) error
+	FindInfoByUserId(ctx context.Context, uid int64) (domain.User, error)
+	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+type userService struct {
+	repo repository.UserRepository
 }
 
-func (svc *UserService) Signup(ctx context.Context, u domain.User) error {
+func NewUserService(repo repository.UserRepository) UserService {
+	return &userService{repo: repo}
+}
+
+func (svc *userService) Signup(ctx context.Context, u domain.User) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -32,7 +41,7 @@ func (svc *UserService) Signup(ctx context.Context, u domain.User) error {
 	return svc.repo.Create(ctx, u)
 }
 
-func (svc *UserService) Login(ctx context.Context, email string, password string) (domain.User, error) {
+func (svc *userService) Login(ctx context.Context, email string, password string) (domain.User, error) {
 	u, err := svc.repo.FindByEmail(ctx, email)
 	if errors.Is(err, repository.ErrUserNotFound) {
 		return domain.User{}, ErrInvalidUserOrPassword
@@ -49,15 +58,19 @@ func (svc *UserService) Login(ctx context.Context, email string, password string
 	return u, nil
 }
 
-func (svc *UserService) UpdateUserInfo(ctx context.Context, user domain.User) error {
+func (svc *userService) UpdateUserInfo(ctx context.Context, user domain.User) error {
 	return svc.repo.UpdateUserInfo(ctx, user)
 }
 
-func (svc *UserService) FindInfoByUserId(ctx context.Context, uid int64) (domain.User, error) {
+func (svc *userService) UpdateNonSensitiveInfo(ctx context.Context, user domain.User) error {
+	return svc.repo.UpdateNonZeroFields(ctx, user)
+}
+
+func (svc *userService) FindInfoByUserId(ctx context.Context, uid int64) (domain.User, error) {
 	return svc.repo.FindById(ctx, uid)
 }
 
-func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
 	// 先找一下，我们认为大部分用户是已经存在的用户
 	_, err := svc.repo.FindByPhone(ctx, phone)
 	if !errors.Is(err, repository.ErrUserNotFound) {

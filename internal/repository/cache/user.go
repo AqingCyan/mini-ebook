@@ -9,13 +9,26 @@ import (
 	"time"
 )
 
-type UserCache struct {
+type UserCache interface {
+	Get(ctx context.Context, uid int64) (domain.User, error)
+	Set(ctx context.Context, du domain.User) error
+}
+
+type RedisUserCache struct {
 	cmd        redis.Cmdable
 	expiration time.Duration
 }
 
+// NewUserCache 创建基于 Redis 的缓存
+func NewUserCache(cmd redis.Cmdable) UserCache {
+	return &RedisUserCache{
+		cmd:        cmd,
+		expiration: time.Minute * 15,
+	}
+}
+
 // Get 获取缓存中的 User
-func (c UserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
+func (c RedisUserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
 	key := c.key(uid)
 	// 读取缓存后反序列化
 	data, err := c.cmd.Get(ctx, key).Result()
@@ -29,7 +42,7 @@ func (c UserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
 }
 
 // Set 将 User 序列化后设置到缓存中
-func (c UserCache) Set(ctx context.Context, du domain.User) error {
+func (c RedisUserCache) Set(ctx context.Context, du domain.User) error {
 	key := c.key(du.Id)
 	// 序列化后缓存
 	data, err := json.Marshal(du)
@@ -40,15 +53,7 @@ func (c UserCache) Set(ctx context.Context, du domain.User) error {
 	return c.cmd.Set(ctx, key, data, c.expiration).Err()
 }
 
-// key 读写 UserCache 缓存时候的键
-func (c *UserCache) key(uid int64) string {
+// key 读写 RedisUserCache 缓存时候的键
+func (c *RedisUserCache) key(uid int64) string {
 	return fmt.Sprintf("user:info:%d", uid)
-}
-
-// NewUserCache 创建基于 Redis 的缓存
-func NewUserCache(cmd redis.Cmdable) *UserCache {
-	return &UserCache{
-		cmd:        cmd,
-		expiration: time.Minute * 15,
-	}
 }
